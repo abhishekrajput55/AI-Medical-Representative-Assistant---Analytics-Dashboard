@@ -1,21 +1,35 @@
-# secrets - never commit
+# --- Secrets: NEVER commit these ---
 .env
-backend/.env
+.env.local
+*.env
+!.env.example
 
-# python
+# --- Python ---
 __pycache__/
-*.pyc
-venv/
+*.py[cod]
+*$py.class
+*.egg-info/
 .venv/
+venv/
+env/
 
-# ai / vector store data
-backend/chroma_data/
+# --- Docker / data volumes ---
+# (chroma_data and pgdata are managed as Docker named volumes,
+# not folders in this repo, so nothing to ignore here for those —
+# but if you ever switch to bind-mounted local folders, add them here)
 
-# node (future frontend)
-frontend/node_modules/
-frontend/dist/
-
-# os / editor
-.DS_Store
-.idea/
+# --- IDE / OS ---
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Node / frontend (once the React app exists) ---
+node_modules/
+dist/
+build/
+.env.local
+.env.production
+
+# --- Logs ---
+*.log
