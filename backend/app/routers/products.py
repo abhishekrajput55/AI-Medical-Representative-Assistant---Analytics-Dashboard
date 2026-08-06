@@ -18,6 +18,7 @@ from app.core.deps import get_current_user, require_role
 from app.models.product import Product
 from app.models.user import User, UserRole
 from app.schemas.product import ProductCreate, ProductUpdate, ProductOut
+from app.ai.vectorstore import upsert_product, delete_product as remove_product_from_index
 
 router = APIRouter(prefix="/api/products", tags=["Products"])
 
@@ -42,6 +43,7 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     db.add(product)
     db.commit()
     db.refresh(product)
+    upsert_product(product)  # keep the AI's knowledge base in sync
     return product
 
 
@@ -82,6 +84,7 @@ def update_product(product_id: uuid.UUID, payload: ProductUpdate, db: Session = 
         setattr(product, field, value)
     db.commit()
     db.refresh(product)
+    upsert_product(product)  # keep the AI's knowledge base in sync
     return product
 
 
@@ -93,4 +96,5 @@ def delete_product(product_id: uuid.UUID, db: Session = Depends(get_db)):
     product = _get_product_or_404(product_id, db)
     db.delete(product)
     db.commit()
+    remove_product_from_index(product_id)  # keep the AI's knowledge base in sync
     return None
