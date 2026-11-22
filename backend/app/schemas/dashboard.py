@@ -32,3 +32,15 @@ class DashboardSummary(BaseModel):
     # Feeds
     upcoming_tasks: list[UpcomingTaskItem]
     recent_activities: list[RecentActivityItem]
+
+
+class TeamMemberStats(BaseModel):
+    """One row of the manager's team table: one MR's month so far."""
+    mr_id: uuid.UUID
+    mr_name: str
+    region: str | None
+    visits_this_month: int
+    doctors_covered_this_month: int
+    sales_this_month: Decimal
+    monthly_target: Decimal | None
+    achievement_percent: float | None
