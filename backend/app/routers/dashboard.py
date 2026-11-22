@@ -9,8 +9,8 @@ together itself.
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import and_, func
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, exists, func
+from sqlalchemy.orm import Session, aliased
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_role
@@ -49,14 +49,25 @@ def get_dashboard_summary(
         .scalar()
     )
 
-    # "Pending" = a follow-up was scheduled for today or earlier,
-    # meaning it's due or overdue right now.
+    # "Pending" = a follow-up that is due (today or earlier) AND has not
+    # been followed up yet, meaning there is NO later visit by this MR to
+    # the same doctor. We count distinct doctors, so two visits to one
+    # doctor never count twice.
+    later_visit = aliased(VisitLog)
+    no_later_visit = ~exists().where(
+        and_(
+            later_visit.mr_id == VisitLog.mr_id,
+            later_visit.doctor_id == VisitLog.doctor_id,
+            later_visit.visit_date > VisitLog.visit_date,
+        )
+    )
     pending_visits_today = (
-        db.query(func.count(VisitLog.id))
+        db.query(func.count(func.distinct(VisitLog.doctor_id)))
         .filter(
             VisitLog.mr_id == current_user.id,
             VisitLog.next_follow_up_date.isnot(None),
             VisitLog.next_follow_up_date <= today,
+            no_later_visit,
         )
         .scalar()
     )
