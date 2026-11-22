@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.routers import auth, doctors, products, chatbot, visits
+from app.routers import auth, doctors, products, chatbot, visits, sales, dashboard
 
 # Import models so SQLAlchemy knows about every table before create_all().
-from app.models import user, doctor, product, chat_message, visit_log  # noqa: F401
+from app.models import user, doctor, product, chat_message, visit_log, sale, sales_target  # noqa: F401
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -37,6 +37,8 @@ app.include_router(doctors.router)
 app.include_router(products.router)
 app.include_router(chatbot.router)
 app.include_router(visits.router)
+app.include_router(sales.router)
+app.include_router(dashboard.router)
 
 
 @app.on_event("startup")
