@@ -17,6 +17,7 @@ from app.core.deps import get_current_user, require_role
 from app.models.visit_log import VisitLog
 from app.models.doctor import Doctor
 from app.models.sale import Sale
+from app.models.product import Product
 from app.models.sales_target import SalesTarget
 from app.models.user import User, UserRole
 from app.schemas.dashboard import (
@@ -136,7 +137,11 @@ def get_dashboard_summary(
             )
         )
 
-    # --- Recent activity feed: last 10 visits ---
+    # --- Recent activity feed: latest visits AND sales, merged ---
+    # Fetch the newest 10 of EACH kind (neither can contribute more than
+    # 10 to the final top 10), put them in one list, sort by time, and
+    # keep the newest 10. Both use created_at (a full date+time) so the
+    # two kinds can be compared and sorted together.
     recent_visits = (
         db.query(VisitLog, Doctor)
         .join(Doctor, VisitLog.doctor_id == Doctor.id)
@@ -145,6 +150,15 @@ def get_dashboard_summary(
         .limit(10)
         .all()
     )
+    recent_sales = (
+        db.query(Sale, Product)
+        .join(Product, Sale.product_id == Product.id)
+        .filter(Sale.mr_id == current_user.id)
+        .order_by(Sale.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
     recent_activities = [
         RecentActivityItem(
             type="visit",
@@ -153,6 +167,16 @@ def get_dashboard_summary(
         )
         for visit, doctor in recent_visits
     ]
+    recent_activities += [
+        RecentActivityItem(
+            type="sale",
+            description=f"Sold {sale.quantity} x {product.brand_name} (Rs {sale.amount:,.2f})",
+            occurred_at=sale.created_at,
+        )
+        for sale, product in recent_sales
+    ]
+    recent_activities.sort(key=lambda item: item.occurred_at, reverse=True)
+    recent_activities = recent_activities[:10]
 
     return DashboardSummary(
         todays_visits=todays_visits,
