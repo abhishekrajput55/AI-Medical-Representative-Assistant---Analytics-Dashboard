@@ -26,6 +26,18 @@ from app.schemas.dashboard import (
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
+# The business runs on India time (UTC+05:30, no daylight saving).
+# Timestamps in the database stay in UTC; this is only used to answer
+# "what day / month is it for the user right now?". To change the
+# company's timezone later, edit this one line.
+BUSINESS_TZ = timezone(timedelta(hours=5, minutes=30))
+
+
+def _today() -> date:
+    """Today's date in the business timezone (not the server's UTC clock)."""
+    return datetime.now(BUSINESS_TZ).date()
+
+
 
 def _with_title(name: str) -> str:
     """Add 'Dr.' only if the saved name doesn't already start with it."""
@@ -40,7 +52,7 @@ def get_dashboard_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    today = date.today()
+    today = _today()
     month_start = today.replace(day=1)
 
     # --- Visit metrics ---
@@ -212,7 +224,7 @@ def get_team_summary(
     Admins see every MR. Regional/Area managers see only the MRs in
     their own region.
     """
-    month_start = date.today().replace(day=1)
+    month_start = _today().replace(day=1)
 
     # Pile 1: visits, dealt into one pile per MR (GROUP BY).
     visit_stats = (
